@@ -1,8 +1,11 @@
 #### Windows controller client ####
 import vgamepad as vg # pip install vgamepad
 import socket #pip install socket
-#import time
+import time # python standard module
+from threading import * # python standard module
+deviceDictionary={}
 
+port=8000 # try port 8000 first
 x_value1=0.00
 y_value1=0.00
 Rx_value1=0.00
@@ -11,38 +14,62 @@ x_value2=0.00
 y_value2=0.00
 Rx_value2=0.00
 Ry_value2=0.00
-deviceDictionary={}
 message=''
 p1Number=''
 p2Number=''
 p1Index=False
 p2Index=False
 connected = False
+startTime=time.time() #timeout start time
+timeOut=3 # timout in seconds
+
 
 def connectSocket():
-    global sock, connected
-    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    #timeout=sock.settimeout(10)
-    sock.connect(('192.168.8.105', 8888))
-    connected = True
+    global sock, connected, startTime, p1Index, p2Index, port
+    try:
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM) #
+        sock.connect(('192.168.8.105', port))
+        p1Index=False
+        p2Index=False
+        connected = True
+        startTime=time.time()
+    except:
+        connected=False
+        port=port+1 # if server connection is lost try reconnect on new port 
+        if port >= port+2:
+            port=port-2
+        try:
+            sock.shutdown(1)
+            sock.close()
+        except:
+            sock.close()
 connectSocket()
 
 def rcvMsg():
-    global sock, message, messages, p1Index, p2Index, lastTime
-    #print(timeout)
+    global sock, message, messages, p1Index, p2Index, startTime, connected, timeOut
+    ts=time.time()
+    if ts-startTime >= timeOut:
+        connected=False
+        sock.shutdown(1)
+        sock.close()
+        print('Disconnected')
     messages=sock.recv(1024).decode()
     messages=messages.split(':')
     for message in messages:
         if message != '':
+            if message == 'PING':
+                print(message)
+                startTime=time.time()
             message=message.split(',')
             if p1Index==False or p2Index==False: # broken use 'and' for 1 player, 'or' for 2
                 connectPlayers()
             else:
                 eventPlayer1()
                 eventPlayer2()
+                startTime=time.time()
                 
 def connectPlayers():
-    global message, p1Index, p2Index, pad1, pad2, p1Number, p2Number
+    global message, p1Index, p2Index, pad1, pad2, p1Number, p2Number, connected
     if message != '':
         if message[1] == 'P1' and message[2] == 'Connected':
             p1Number=message[0]
@@ -54,7 +81,8 @@ def connectPlayers():
             p2Number=message[0]
             print('P2 connected, '+ str(p2Number))
             p2Index=True
-            pad2 = vg.VX360Gamepad()    
+            pad2 = vg.VX360Gamepad()
+        connected = True
 
 def eventPlayer1():
     global message, x_value1, y_value1, Rx_value1, Ry_value1, pad1, p1Number
@@ -273,22 +301,20 @@ def eventPlayer2():
             pad2.update()
 while True:
     global sock
-    if(not connected): # limited reconnection, needs more robust reconnect feature
+    if(not connected): 
         try:
+            connected = False
+            sock.close()
             connectSocket()
-            print("Client connected")
-            p1Index=False
-            p2Index=False
-            connected = True
         except:
             pass
     else:
         try:
             rcvMsg()
         except:
-            print("Client not connected")
             connected = False
             sock.close()
-            pass
-s.close
+            connectSocket()
+
+sock.close()
 
