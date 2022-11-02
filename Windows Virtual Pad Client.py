@@ -1,9 +1,15 @@
 #### Windows controller client ####
+#### so far the only controllers that have been tested are:
+#### 2 player SAFFUN N64 USB pads (demonstrates analog signals over websockets work)
+#### 2 player generic NES pads
+#### 2 player generic SNES pads
+#### need to start moving towards USB XBOX pads with 4 players
+
 import vgamepad as vg # pip install vgamepad
 import socket #pip install socket
 import time # python standard module
-from threading import * # python standard module
-deviceDictionary={}
+#from threading import * # python standard module
+#deviceDictionary={}
 
 port=8000 # try port 8000 first
 x_value1=0.00
@@ -318,3 +324,11 @@ while True:
 
 sock.close()
 
+#### To Do List:
+# make GUI
+# incorporated 4 players
+# use xbox controllers and other controllers
+# add button mapping and configs
+# try to use device.capabilities() on server side to convert all analog to the same format
+# incorporate keybd and mouse (find virtual keybd/mouse module for client)
+# either fix player reconnection or send all events and sort it out on client side.
